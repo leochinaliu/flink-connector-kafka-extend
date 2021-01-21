@@ -38,6 +38,7 @@ build:
     - merge_requests
     - /^release\/.*$/
   script:
-    - build
+    - mvn deploy -ff -B
   tags:
     - java
+

@@ -59,17 +59,16 @@
         </plugins>
     </build>
 
-    <repositories>
-        <repository>
+    <profiles>
+        <profile>
             <id>aiads</id>
-            <name>Apache Development Snapshot Repository</name>
-            <url>http://nexus.aiads.com/repository/aiads-maven-snapshots/</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <releases-url>http://nexus.aiads.com/repository/aiads-maven-releases</releases-url>
+                <snapshots-url>http://nexus.aiads.com/repository/aiads-maven-snapshots</snapshots-url>
+            </properties>
+        </profile>
+    </profiles>
 </project>
