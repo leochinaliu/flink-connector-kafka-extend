@@ -1,0 +1,43 @@
+stages:
+  - lint
+  - build
+
+lint:
+  image: aicrs.cn/devops/java/build
+  stage: lint
+  only:
+    - master
+  script:
+    - sonar aiads
+  tags:
+    - java
+
+lint-preview:
+  image: aicrs.cn/devops/java/build
+  stage: lint
+  only:
+    - merge_requests
+  script:
+    - |
+      mvn -P aiads -B -ff -e verify sonar:sonar \
+      -Dsonar.sourceEncoding=UTF-8 \
+      -Dsonar.gitlab.project_id=$CI_PROJECT_ID \
+      -Dsonar.gitlab.commit_sha=$CI_COMMIT_SHA \
+      -Dsonar.gitlab.ref_name=$CI_COMMIT_REF_NAME \
+      -Dsonar.gitlab.ci_merge_request_iid=$CI_MERGE_REQUEST_IID \
+      -Dsonar.gitlab.merge_request_discussion=true \
+      -Dsonar.analysis.mode=preview
+  tags:
+    - java
+
+build:
+  image: aicrs.cn/devops/java/build
+  stage: build
+  only:
+    - master
+    - merge_requests
+    - /^release\/.*$/
+  script:
+    - build
+  tags:
+    - java
