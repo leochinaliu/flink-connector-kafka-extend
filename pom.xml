@@ -61,9 +61,9 @@
 
     <repositories>
         <repository>
-            <id>apache.snapshots</id>
+            <id>aiads</id>
             <name>Apache Development Snapshot Repository</name>
-            <url>https://repository.apache.org/content/repositories/snapshots/</url>
+            <url>http://nexus.aiads.com/repository/aiads-maven-snapshots/</url>
             <releases>
                 <enabled>false</enabled>
             </releases>
