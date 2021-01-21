@@ -4,10 +4,10 @@ import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.factories.FactoryUtil;
 
 /**
- * 由于官方的upsert-kafka没有提供周期性上涨水印功能，这里提供一个能周期性上涨水印的kafka connector
+ * 由于官方的kafka没有提供周期性上涨水印功能，这里提供一个能周期性上涨水印的kafka connector
  */
-public class UpsertKafkaExtendDynamicTableFactory extends UpsertKafkaDynamicTableFactory {
-    public static final String IDENTIFIER = "upsert-kafka-extend";
+public class KafkaExtendDynamicTableFactory extends KafkaDynamicTableFactory {
+    public static final String IDENTIFIER = "kafka-extend";
 
     @Override
     public String factoryIdentifier() {
@@ -25,6 +25,4 @@ public class UpsertKafkaExtendDynamicTableFactory extends UpsertKafkaDynamicTabl
         //并增加新逻辑的watermark
         return new DynamicTableTools().extendDynamicTableSource(source, context, helper);
     }
-
-
 }
