@@ -7,6 +7,7 @@ import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.CloseableIterator;
+import org.apache.kafka.common.protocol.types.Field;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,9 +37,7 @@ public class KafkaTest {
         env.getConfig().setRestartStrategy(RestartStrategies.noRestart());
     }
 
-    @Test
-    public void generateTestData() throws Exception {
-        String topic = "test-person-birthday2";
+    public void generateTestData(String topic) throws Exception {
 
         KafkaTableTestUtils.createTestTopic(topic, 1, 1);
 
@@ -76,6 +75,9 @@ public class KafkaTest {
 
     @Test
     public void testTUMBLE() throws Exception {
+        String topic = "test-person-birthday2";
+
+        generateTestData(topic);
 
         //kafka-extend
         String createTable = String.format(
@@ -93,7 +95,7 @@ public class KafkaTest {
                         + "  'extend.idleTimeOut' = '60',\n"
                         + "  'format' = 'json'"
                         + ")",
-                "test-person-birthday", kafkaAddress);
+                topic, kafkaAddress);
 
         tEnv.executeSql(createTable).await();
 
@@ -103,7 +105,7 @@ public class KafkaTest {
                 "GROUP BY TUMBLE(birthday, INTERVAL '1' DAY)";
         List<Row> rows = KafkaTableTestUtils.collectRows(tEnv.sqlQuery(query), 3);
 
-        Assert.assertEquals(rows.size(), 3);
+        Assert.assertEquals(rows.size(), 3);  //最后一条数据也能输出，说明watermark已周期性上涨至当前时间
 
 
         //kafka
@@ -121,7 +123,7 @@ public class KafkaTest {
                         + "  'scan.startup.mode' = 'earliest-offset',\n"
                         + "  'format' = 'json'"
                         + ")",
-                "test-person-birthday2", kafkaAddress);
+                topic, kafkaAddress);
 
         tEnv.executeSql(createTable2).await();
 
@@ -132,6 +134,8 @@ public class KafkaTest {
         //TODO 运行停止不了，造成该单元测试不可用
         List<Row> rows2 = KafkaTableTestUtils.collectRows(tEnv.sqlQuery(query2), 3);
         Assert.assertEquals(rows2.size(), 2);
+
+        KafkaTableTestUtils.deleteTestTopic(topic);
 
 //        DataStream<RowData> result = tEnv.toAppendStream(tEnv.sqlQuery(query2), RowData.class);
 //        TestingSinkFunction sink = new TestingSinkFunction(2);
@@ -145,6 +149,48 @@ public class KafkaTest {
 //
 //        System.out.println(TestingSinkFunction.rows);
 
+    }
+
+    /**
+     * 该测试不能吐出数据，因为不支持计算列
+     * @throws Exception
+     */
+    @Test
+    public void testCompareColumn() throws Exception {
+        String topic = "test-person-birthday2";
+
+        generateTestData(topic);
+
+        //kafka-extend
+        String createTable = String.format(
+                "CREATE TABLE upsert_kafka_select (\n"
+                        + "  `user_id` BIGINT,\n"
+                        + "  `name` STRING,\n"
+                        + "  `birthday` TIMESTAMP(3),\n"
+                        + "  `tmpTime` AS TIMESTAMPADD(DAY, -10, LOCALTIMESTAMP),\n"
+                        + "  WATERMARK FOR tmpTime AS tmpTime  - INTERVAL '10' MINUTE"
+                        + ") WITH (\n"
+                        + "  'connector' = 'kafka-extend',\n"
+                        + "  'topic' = '%s',\n"
+                        + "  'properties.bootstrap.servers' = '%s',\n"
+                        + "  'properties.group.id' = 'test',\n"
+                        + "  'scan.startup.mode' = 'earliest-offset',\n"
+                        + "  'extend.idleTimeOut' = '60',\n"
+                        + "  'format' = 'json'"
+                        + ")",
+                topic, kafkaAddress);
+
+        tEnv.executeSql(createTable).await();
+
+
+        String query = "SELECT TUMBLE_START(tmpTime, INTERVAL '1' DAY) as tmpTime, " +
+                "  COUNT(1) FROM upsert_kafka_select " +
+                "GROUP BY TUMBLE(tmpTime, INTERVAL '1' DAY)";
+        List<Row> rows = KafkaTableTestUtils.collectRows(tEnv.sqlQuery(query), 3);
+
+        KafkaTableTestUtils.deleteTestTopic(topic);
+
+        Assert.assertEquals(rows.size(), 3);
     }
 
 

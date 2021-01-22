@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -61,9 +62,28 @@ public class KafkaTableTestUtils {
         props.put("bootstrap.servers", KafkaTest.kafkaAddress);  //kafka服务地址
 
         AdminClient client = KafkaAdminClient.create(props);//创建操作客户端
+
+        try {
+            if (client.listTopics().names().get().stream().anyMatch(a -> a.equalsIgnoreCase(topic))) {
+                deleteTestTopic(topic);
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+
         //创建名称为test1的topic，有5个分区
         NewTopic topic2 = new NewTopic(topic, numberOfPartitions, (short) replicationFactor);
         client.createTopics(Arrays.asList(topic2));
+        client.close();//关闭
+    }
+
+    public static void deleteTestTopic(String topic) {
+        Properties props = new Properties();
+        props.put("bootstrap.servers", KafkaTest.kafkaAddress);  //kafka服务地址
+        AdminClient client = KafkaAdminClient.create(props);//创建操作客户端
+        client.deleteTopics(Arrays.asList(topic));
         client.close();//关闭
     }
 }
