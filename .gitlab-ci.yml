@@ -34,7 +34,7 @@ build:
   image: aicrs.cn/devops/java/build
   stage: build
   script:
-    - mvn deploy -ff -B
+    - mvn deploy -ff -B -Dmaven.test.skip=true
   tags:
     - java
 
