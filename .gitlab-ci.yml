@@ -33,10 +33,6 @@ lint-preview:
 build:
   image: aicrs.cn/devops/java/build
   stage: build
-  only:
-    - master
-    - merge_requests
-    - /^release\/.*$/
   script:
     - mvn deploy -ff -B
   tags:
